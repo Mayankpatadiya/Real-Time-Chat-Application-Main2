@@ -1,0 +1,38 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+
+# Django stuff
+*.log
+db.sqlite3
+staticfiles/
+media/
+
+# Migrations cache
+*/migrations/*.pyc
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Build files
+*.egg-info/
+dist/
+build/
+
+# Redis dump
+dump.rdb

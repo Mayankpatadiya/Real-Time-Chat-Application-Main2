@@ -1,0 +1,1085 @@
+{% load static%}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatTiko - Real-time Chat</title>
+  <link rel="stylesheet" href="{% static 'css/output.css' %}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    @keyframes typing {
+
+      0%,
+      60%,
+      100% {
+        transform: translateX(0);
+      }
+
+      30% {
+        transform: translateX(-5px);
+      }
+    }
+
+    .typing-indicator {
+      animation: typing 1.8s infinite;
+    }
+
+    /* File upload styles */
+    .chat-img-thumb {
+      max-width: 260px;
+      max-height: 200px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform .2s;
+    }
+
+    .chat-img-thumb:hover {
+      transform: scale(1.03);
+    }
+
+    .file-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      max-width: 280px;
+      text-decoration: none;
+      color: inherit;
+      transition: background .2s;
+    }
+
+    .file-card:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .file-card .file-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(16, 185, 129, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .file-card .file-info {
+      overflow: hidden;
+    }
+
+    .file-card .file-name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .file-card .file-action {
+      font-size: 11px;
+      color: #10b981;
+    }
+
+    /* Lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all .25s;
+    }
+
+    .lightbox.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 85vh;
+      border-radius: 12px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 28px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s;
+    }
+
+    .lightbox-close:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Upload preview bar */
+    .upload-preview {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 16px;
+      margin-bottom: 8px;
+      animation: slideUp .2s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .upload-preview img {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .upload-preview .file-preview-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .upload-preview .preview-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .upload-preview .preview-name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .upload-preview .preview-size {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .upload-progress {
+      height: 3px;
+      background: rgba(16, 185, 129, 0.2);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .upload-progress-bar {
+      height: 100%;
+      background: #10b981;
+      border-radius: 2px;
+      transition: width .3s;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-gray-100 h-screen flex flex-col overflow-hidden">
+
+  <!-- Top Header -->
+  <header
+    class="bg-gray-900/95 backdrop-blur-md border-b border-gray-800/50 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center space-x-4">
+      <div
+        class="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg">
+        CT
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+          ChatTiko</h1>
+        <p class="text-xs text-emerald-400 font-medium">Online</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button id="mobileMenuBtn" aria-label="Open menu"
+        class="md:hidden p-2 hover:bg-gray-800/50 rounded-xl transition-all duration-200">
+        <i id="mobileMenuIcon" class="fas fa-comment text-xl"></i>
+      </button>
+
+
+      <div class="flex items-center space-x-2">
+        <!-- Notification bell hidden on mobile to save space -->
+        <button
+          class="hidden md:flex w-10 h-10 bg-gray-800/50 hover:bg-gray-700 rounded-xl items-center justify-center transition-all duration-200">
+          <i class="fas fa-bell"></i>
+        </button>
+        <a href="{% url 'profile' %}" aria-label="Profile"
+          class="w-10 h-10 bg-linear-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-200">
+          <i class="fas fa-user text-white text-sm" aria-hidden="true"></i>
+        </a>
+        <a href="{% url 'logout' %}" aria-label="Logout"
+          class="w-10 h-10 bg-gray-800/50 hover:bg-gray-700 rounded-xl flex items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-200">
+          <i class="fas fa-sign-out-alt text-amber-400 text-sm" aria-hidden="true"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden relative">
+    <!-- Mobile Overlay -->
+    <div id="mobileOverlay"
+      class="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-30 opacity-0 invisible transition-all duration-300 pointer-events-none">
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+      class="w-full md:w-80 bg-gray-900/95 backdrop-blur-md border-r border-gray-800/50 md:border-r-0 flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-40 fixed md:relative inset-0 md:inset-auto h-full md:h-auto">
+
+      <!-- Sidebar Header -->
+      <div class="p-6 border-b border-gray-800/50 sticky top-0 bg-gray-900/95 z-10">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-white">Chats</h2>
+
+        </div>
+
+        <!-- Search -->
+        <div class="relative">
+          <input id="searchInput" type="text" placeholder="Search chats..."
+            class="w-full bg-gray-800/50 border border-gray-700 rounded-2xl px-4 py-3 pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-transparent transition-all duration-200 backdrop-blur-sm">
+          <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="px-5 py-4 border-b border-gray-800/50 bg-gray-900/40">
+        <div class="flex gap-4">
+          <a href="{% url 'create_group'%}"
+            class="flex-1 group flex items-center justify-center space-x-3 py-3 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 hover:border-indigo-500/40 rounded-2xl transition-all duration-300 active:scale-95 shadow-lg shadow-indigo-500/5">
+            <div
+              class="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors">
+              <i class="fas fa-users text-indigo-400"></i>
+            </div>
+            <span class="text-sm font-semibold text-indigo-300">New Group</span>
+          </a>
+          <button id="newChatBtn"
+            class="flex-1 group flex items-center justify-center space-x-3 py-3 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/40 rounded-2xl transition-all duration-300 active:scale-95 shadow-lg shadow-emerald-500/5">
+            <div
+              class="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
+              <i class="fas fa-plus text-emerald-400"></i>
+            </div>
+            <span class="text-sm font-semibold text-emerald-300">New Chat</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex px-4 py-3 border-b border-gray-800/50 bg-gray-900/50">
+        <button
+          class="flex-1 py-2 px-3 text-sm font-medium rounded-xl text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 transition-all"
+          data-tab="online">
+          <i class="fas fa-circle mr-1 text-xs"></i>Online (<span id="online-count">{{ online_users_count|default:0
+            }}</span>)
+        </button>
+        <button
+          class="flex-1 py-2 px-3 text-sm font-medium rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+          data-tab="all">
+          All Chats
+        </button>
+      </div>
+
+      <!-- Contacts List -->
+      <div id="contactsList" class="flex-1 overflow-y-auto scrollbar-hide px-2 py-2 space-y-1">
+
+        <!-- Groups Section -->
+        {% if groups %}
+        <div id="groupsSection">
+          <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Groups
+          </div>
+          {% for group in groups %}
+          <a href="{% url 'group_chat' group.id %}"
+            class="contact-item p-4 rounded-2xl hover:bg-gray-800/50 cursor-pointer transition-all duration-200 flex items-center space-x-4 group">
+            <div class="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center text-white font-bold">
+              {{ group.name|first|upper }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-white truncate">
+                {{ group.name }}
+              </h4>
+              <p class="text-xs text-gray-400 truncate">
+                {{ group.members.count }} members
+              </p>
+            </div>
+          </a>
+          {% endfor %}
+          <div class="my-2 border-b border-gray-800/50"></div>
+        </div>
+        {% endif %}
+
+        {% for profile in users %}
+        <a href="{% url 'chat' profile.user.id %}" data-user-id="{{ profile.user.id }}"
+          class="contact-item p-4 rounded-2xl hover:bg-gray-800/50 cursor-pointer transition-all duration-200 flex items-center space-x-4 group">
+
+          <div class="relative">
+            {% if profile.profile_photo %}
+            <img src="{{ profile.profile_photo.url }}" class="w-12 h-12 rounded-xl">
+            {% else %}
+            <div class="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-white font-bold">
+              {{ profile.user.username|first|upper }}
+            </div>
+            {% endif %}
+            <div
+              class="status-dot absolute -bottom-1 -right-1 w-4 h-4 border-2 border-gray-900 rounded-full {% if profile.is_online %}bg-emerald-500{% else %}bg-gray-500{% endif %}">
+            </div>
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <h4 class="font-medium text-white truncate">
+              {{ profile.user.username }}
+            </h4>
+            <p class="text-xs text-gray-400 truncate status-text">
+              {% if profile.is_online %}Online{% else %}Offline{% endif %}
+            </p>
+          </div>
+
+        </a>
+        {% empty %}
+        <p class="text-gray-500 text-center mt-6">No users found</p>
+        {% endfor %}
+
+      </div>
+
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="flex-1 flex flex-col bg-gray-900/50 backdrop-blur-sm md:ml-0 transition-all duration-300">
+
+      <!-- Chat Header -->
+      <div
+        class="bg-gray-900/95 backdrop-blur-md border-b border-gray-800/50 px-6 py-5 flex items-center justify-between sticky top-0 z-10">
+
+        {% if active_user %}
+        <div class="flex items-center space-x-4">
+
+
+
+          <div class="flex items-center space-x-3">
+            {% with active_user.userprofile as p %}
+            {% if p.profile_photo %}
+            <img src="{{ p.profile_photo.url }}" class="w-12 h-12 rounded-2xl">
+            {% else %}
+            <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white font-bold">
+              {{ active_user.username|first|upper }}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div>
+              <h2 class="font-bold text-white">
+                {{ active_user.username }}
+              </h2>
+              <span id="active-user-status"
+                class="text-sm {% if active_user.userprofile.is_online %}text-emerald-400{% else %}text-gray-400{% endif %}">
+                {% if active_user.userprofile.is_online %}Online{% else %}Offline{% endif %}
+              </span>
+            </div>
+          </div>
+        </div>
+        {% elif active_group %}
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center text-white font-bold">
+              {{ active_group.name|first|upper }}
+            </div>
+            <div class="flex flex-col">
+              <h2 class="font-bold text-white text-lg">
+                {{ active_group.name }}
+              </h2>
+              <div class="flex flex-col">
+                <span class="text-xs font-semibold text-indigo-400 mb-0.5">
+                  {{ active_group.members.count }} members
+                </span>
+                <span class="text-xs text-gray-400 truncate max-w-sm"
+                  title="{% for member in active_group.members.all %}{{ member.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                  {% for member in active_group.members.all %}
+                  {{ member.user.username }}{% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <h2 class="text-gray-400">Select a chat</h2>
+        {% endif %}
+
+      </div>
+
+
+      <!-- Messages Container -->
+      <div id="messagesContainer" class="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="flex {% if msg.sender == request.user %}justify-end{% endif %}">
+          <div class="max-w-sm px-4 py-2 rounded-2xl
+           {% if msg.sender == request.user %}
+             bg-emerald-500 text-white
+           {% else %}
+             bg-gray-800 text-white
+           {% endif %}">
+            {% if active_group and msg.sender != request.user %}
+            <div class="text-[10px] text-gray-400 mb-1 ml-1">{{ msg.sender.username }}</div>
+            {% endif %}
+            {% if msg.file %}
+            {% if msg.is_image %}
+            <img src="{{ msg.file.url }}" alt="{{ msg.file_name }}" class="chat-img-thumb"
+              onclick="openLightbox('{{ msg.file.url }}')">
+            {% else %}
+            <a href="{{ msg.file.url }}" target="_blank" download class="file-card">
+              <div class="file-icon"><i class="fas fa-file text-emerald-400"></i></div>
+              <div class="file-info">
+                <div class="file-name">{{ msg.file_name }}</div>
+                <div class="file-action">Download</div>
+              </div>
+            </a>
+            {% endif %}
+            {% if msg.content %}<div class="mt-1 text-sm">{{ msg.content }}</div>{% endif %}
+            {% else %}
+            {{ msg.content }}
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-center text-gray-500 mt-10">
+          No messages yet
+        </p>
+        {% endif %}
+
+      </div>
+
+
+      <!-- Message Input -->
+      <div class="bg-gray-900/95 backdrop-blur-md border-t border-gray-800/50 px-8 py-6 sticky bottom-0 z-10">
+        <div class="max-w-4xl mx-auto">
+          <!-- Upload preview -->
+          <div id="uploadPreview" class="hidden"></div>
+
+          <div
+            class="flex items-end space-x-4 bg-gray-800/50 border border-gray-700 rounded-3xl p-4 hover:border-gray-600 transition-all duration-200">
+
+            <!-- Hidden file input -->
+            <input type="file" id="fileInput" class="hidden"
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,.txt,.csv">
+
+            <button id="attachBtn" type="button"
+              class="p-3 text-gray-500 hover:text-emerald-400 hover:bg-gray-700/50 rounded-2xl transition-all duration-200"
+              title="Attach file">
+              <i class="fas fa-paperclip text-lg"></i>
+            </button>
+
+            <div class="flex-1 flex items-end space-x-2">
+              {% if active_user or active_group %}
+              <form method="POST" class="flex w-full space-x-2" id="messageForm">
+                {% csrf_token %}
+                <input id="msg" type="text" placeholder="Type message..."
+                  class="flex-1 px-4 py-2 rounded-xl bg-transparent text-white focus:outline-none">
+                <button type="button" id="sendBtn"
+                  class="bg-emerald-500 px-4 rounded-xl text-white hover:bg-emerald-600 transition-all duration-200">
+                  Send
+                </button>
+              </form>
+              {% else %}
+              <p class="text-gray-500 text-center">
+                Select a user or group to start chatting
+              </p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+    <img id="lightboxImg" src="" alt="Preview">
+  </div>
+
+  {{ chat.id|json_script:"chat-id" }}
+  {{ active_group.id|json_script:"group-id" }}
+
+  <script>
+    const chatId = JSON.parse(document.getElementById('chat-id').textContent);
+    const groupId = JSON.parse(document.getElementById('group-id').textContent);
+    let socket = null;
+
+    // Presence Tracking
+    const onlineSocket = new WebSocket(
+      (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/online/'
+    );
+
+    onlineSocket.onmessage = function (e) {
+      const data = JSON.parse(e.data);
+      if (data.type === 'status_update') {
+        const userId = data.user_id;
+        const isOnline = data.online;
+        updateUserOnlineStatus(userId, isOnline);
+      }
+    };
+
+    function updateUserOnlineStatus(userId, isOnline) {
+      const userItem = document.querySelector(`[data-user-id="${userId}"]`);
+      if (userItem) {
+        const statusDot = userItem.querySelector('.status-dot');
+        const statusText = userItem.querySelector('.status-text');
+
+        if (isOnline) {
+          statusDot?.classList.remove('bg-gray-500');
+          statusDot?.classList.add('bg-emerald-500');
+          if (statusText) statusText.textContent = 'Online';
+        } else {
+          statusDot?.classList.remove('bg-emerald-500');
+          statusDot?.classList.add('bg-gray-500');
+          if (statusText) statusText.textContent = 'Offline';
+        }
+      }
+
+      // Update active chat header if this is the user we are talking to
+      const activeUserId = "{{ active_user.id|default:'' }}";
+      if (activeUserId && activeUserId == userId) {
+        const activeStatusEl = document.getElementById('active-user-status');
+        if (activeStatusEl) {
+          activeStatusEl.textContent = isOnline ? 'Online' : 'Offline';
+          if (isOnline) {
+            activeStatusEl.classList.remove('text-gray-400');
+            activeStatusEl.classList.add('text-emerald-400');
+          } else {
+            activeStatusEl.classList.remove('text-emerald-400');
+            activeStatusEl.classList.add('text-gray-400');
+          }
+        }
+      }
+
+      // Update global online counter
+      const onlineCount = document.querySelectorAll('.status-dot.bg-emerald-500').length;
+      const counterSpan = document.getElementById('online-count');
+      if (counterSpan) {
+        counterSpan.textContent = onlineCount;
+      }
+    }
+
+    if (chatId && !isNaN(chatId)) {
+      const ws_protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+      socket = new WebSocket(
+        ws_protocol + window.location.host + "/ws/chat/" + chatId + "/"
+      );
+    } else if (groupId && !isNaN(groupId)) {
+      const ws_protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+      socket = new WebSocket(
+        ws_protocol + window.location.host + "/ws/group/" + groupId + "/"
+      );
+    }
+
+    if (socket) {
+      console.log("Connecting to WebSocket...");
+
+      socket.onopen = function () {
+        console.log("✅ Chat WebSocket connected to room:", chatId ? 'Chat ' + chatId : 'Group ' + groupId);
+      };
+
+      socket.onerror = function (e) {
+        console.error("❌ Chat WebSocket error observed. Check if another server is running.");
+      };
+
+      socket.onclose = function (e) {
+        console.log("⚠️ Chat WebSocket closed. Code:", e.code);
+        // Don't auto-reload immediately to avoid loops
+      };
+
+      socket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        const container = document.getElementById("messagesContainer");
+        const currentUser = "{{ request.user.username }}";
+
+        if (data.type === 'typing') {
+          if (data.sender !== currentUser) {
+            updateTypingIndicator(data.typing, data.sender);
+          }
+          return;
+        }
+
+        const isCurrentUser = data.sender === currentUser;
+
+        // Handle file messages
+        if (data.type === 'file_message') {
+          const div = document.createElement('div');
+          div.className = `flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
+
+          let senderNameHtml = '';
+          if (!isCurrentUser && groupId) {
+            senderNameHtml = `<div class="text-[10px] text-gray-400 mb-1 ml-1">${data.sender}</div>`;
+          }
+
+          let fileHtml = '';
+          if (data.is_image) {
+            fileHtml = `<img src="${data.file_url}" alt="${data.file_name}" class="chat-img-thumb" onclick="openLightbox('${data.file_url}')"/>`;
+          } else {
+            fileHtml = `<a href="${data.file_url}" target="_blank" download class="file-card">
+              <div class="file-icon"><i class="fas fa-file text-emerald-400"></i></div>
+              <div class="file-info">
+                <div class="file-name">${data.file_name}</div>
+                <div class="file-action">Download</div>
+              </div>
+            </a>`;
+          }
+
+          const captionHtml = data.caption ? `<div class="mt-1 text-sm">${data.caption}</div>` : '';
+
+          div.innerHTML = `
+            <div>
+              ${senderNameHtml}
+              <div class="max-w-sm px-4 py-2 rounded-2xl ${isCurrentUser ? 'bg-emerald-500 text-white' : 'bg-gray-800 text-white'}">
+                ${fileHtml}
+                ${captionHtml}
+              </div>
+            </div>`;
+
+          container.appendChild(div);
+          container.scrollTop = container.scrollHeight;
+          return;
+        }
+
+        // Handle text messages
+        let senderNameHtml = '';
+        if (!isCurrentUser && groupId) {
+          senderNameHtml = `<div class="text-[10px] text-gray-400 mb-1 ml-1">${data.sender}</div>`;
+        }
+
+        const div = document.createElement('div');
+        div.className = `flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
+        div.innerHTML = `
+            <div>
+                ${senderNameHtml}
+                <div class="max-w-sm px-4 py-2 rounded-2xl ${isCurrentUser
+            ? 'bg-emerald-500 text-white'
+            : 'bg-gray-800 text-white'
+          }">
+                ${data.message}
+                </div>
+            </div>
+          `;
+
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+      };
+    }
+
+    function sendMessage() {
+      const input = document.getElementById("msg");
+      const message = input.value.trim();
+
+      if (message === "") return;
+
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        const states = { 0: "CONNECTING", 1: "OPEN", 2: "CLOSING", 3: "CLOSED" };
+        const currentState = socket ? states[socket.readyState] : "NULL";
+        console.error("❌ Cannot send. WebSocket is in state:", currentState);
+        alert("Connection lost. Please refresh the page.");
+        return;
+      }
+
+      console.log("📤 Sending message:", message);
+      socket.send(JSON.stringify({
+        message: message
+      }));
+
+      input.value = "";
+    }
+
+
+
+    // Mobile responsive sidebar - Toggle on second click
+    const sidebar = document.getElementById('sidebar');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+
+    // Check if sidebar is open
+    function isSidebarOpen() {
+      return !sidebar.classList.contains('-translate-x-full');
+    }
+
+    function openSidebar() {
+      sidebar.classList.remove('-translate-x-full');
+      mobileOverlay.classList.remove('opacity-0', 'invisible');
+      mobileOverlay.classList.add('opacity-100', 'visible', 'pointer-events-auto');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+      sidebar.classList.add('-translate-x-full');
+      mobileOverlay.classList.remove('opacity-100', 'visible', 'pointer-events-auto');
+      mobileOverlay.classList.add('opacity-0', 'invisible');
+      document.body.style.overflow = 'auto';
+    }
+
+    // Toggle sidebar on mobile menu button click
+    mobileMenuBtn.addEventListener('click', () => {
+      if (isSidebarOpen()) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+
+    mobileOverlay.addEventListener('click', closeSidebar);
+
+
+
+    mobileOverlay.addEventListener('click', closeSidebar);
+
+
+
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const contactItems = document.querySelectorAll('.contact-item');
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      contactItems.forEach(item => {
+        const name = item.querySelector('h4').textContent.toLowerCase();
+        item.style.display = name.includes(query) ? 'flex' : 'none';
+      });
+    });
+
+    // Tab switching logic
+    const tabButtons = document.querySelectorAll('[data-tab]');
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+
+        // Update button styles
+        tabButtons.forEach(b => {
+          b.classList.remove('bg-emerald-500/10', 'text-emerald-400', 'border-emerald-500/30');
+          b.classList.add('text-gray-400');
+        });
+        btn.classList.add('bg-emerald-500/10', 'text-emerald-400', 'border-emerald-500/30');
+        btn.classList.remove('text-gray-400');
+
+        // Filter contacts
+        contactItems.forEach(item => {
+          const statusDot = item.querySelector('.status-dot');
+          if (tab === 'online') {
+            // Groups don't have a status dot — hide them in online tab
+            if (!statusDot) {
+              item.style.display = 'none';
+            } else {
+              const isOnline = statusDot.classList.contains('bg-emerald-500');
+              item.style.display = isOnline ? 'flex' : 'none';
+            }
+          } else {
+            item.style.display = 'flex';
+          }
+        });
+
+        // Show/hide the entire Groups section header + separator
+        const groupsSection = document.getElementById('groupsSection');
+        if (groupsSection) {
+          groupsSection.style.display = tab === 'online' ? 'none' : 'block';
+        }
+
+      });
+    });
+
+    // Contact selection
+    document.querySelectorAll('.contact-item, [data-user]').forEach(item => {
+      item.addEventListener('click', () => {
+        // Close sidebar on mobile when selecting contact
+        if (window.innerWidth < 768) {
+          closeSidebar();
+        }
+        // Here you would load the selected chat
+        console.log('Selected chat:', item.dataset.user);
+      });
+    });
+
+    // Setup send button event listener
+    const sendBtnElement = document.getElementById('sendBtn');
+
+    if (sendBtnElement) {
+      sendBtnElement.addEventListener('click', (e) => {
+        e.preventDefault();
+        sendMessage();
+      });
+    }
+
+    const msgInputKey = document.getElementById("msg");
+    if (msgInputKey) {
+      msgInputKey.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+    }
+
+    // ========== FILE UPLOAD LOGIC ==========
+    const fileInput = document.getElementById('fileInput');
+    const attachBtn = document.getElementById('attachBtn');
+    const uploadPreviewEl = document.getElementById('uploadPreview');
+    let pendingFile = null;
+
+    if (attachBtn) {
+      attachBtn.addEventListener('click', () => fileInput.click());
+    }
+
+    if (fileInput) {
+      fileInput.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+        pendingFile = file;
+        showUploadPreview(file);
+      });
+    }
+
+    function showUploadPreview(file) {
+      const isImg = file.type.startsWith('image/');
+      const sizeStr = file.size < 1024 * 1024
+        ? (file.size / 1024).toFixed(1) + ' KB'
+        : (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+      let thumbHtml;
+      if (isImg) {
+        const url = URL.createObjectURL(file);
+        thumbHtml = `<img src="${url}" alt="preview">`;
+      } else {
+        thumbHtml = `<div class="file-preview-icon"><i class="fas fa-file text-emerald-400 text-xl"></i></div>`;
+      }
+
+      uploadPreviewEl.innerHTML = `
+        <div class="upload-preview">
+          ${thumbHtml}
+          <div class="preview-info">
+            <div class="preview-name">${file.name}</div>
+            <div class="preview-size">${sizeStr}</div>
+            <div class="upload-progress hidden" id="uploadProgress">
+              <div class="upload-progress-bar" id="uploadProgressBar" style="width:0%"></div>
+            </div>
+          </div>
+          <button onclick="cancelUpload()" class="text-gray-400 hover:text-red-400 transition p-1" title="Cancel">
+            <i class="fas fa-times"></i>
+          </button>
+          <button onclick="doUpload()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-sm font-medium transition" id="uploadSendBtn">
+            <i class="fas fa-paper-plane mr-1"></i>Send
+          </button>
+        </div>`;
+      uploadPreviewEl.classList.remove('hidden');
+    }
+
+    function cancelUpload() {
+      pendingFile = null;
+      fileInput.value = '';
+      uploadPreviewEl.innerHTML = '';
+      uploadPreviewEl.classList.add('hidden');
+    }
+
+    function doUpload() {
+      if (!pendingFile) return;
+
+      const formData = new FormData();
+      formData.append('file', pendingFile);
+
+      const captionInput = document.getElementById('msg');
+      const caption = captionInput ? captionInput.value.trim() : '';
+      formData.append('caption', caption);
+
+      if (chatId) formData.append('chat_id', chatId);
+      if (groupId) formData.append('group_id', groupId);
+
+      // Get CSRF token
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+
+      const uploadBtn = document.getElementById('uploadSendBtn');
+      const progressDiv = document.getElementById('uploadProgress');
+      const progressBar = document.getElementById('uploadProgressBar');
+
+      if (uploadBtn) uploadBtn.disabled = true;
+      if (progressDiv) progressDiv.classList.remove('hidden');
+
+      // Use XMLHttpRequest for progress tracking
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/upload/');
+      if (csrfToken) xhr.setRequestHeader('X-CSRFToken', csrfToken.value);
+
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable && progressBar) {
+          progressBar.style.width = Math.round((e.loaded / e.total) * 100) + '%';
+        }
+      };
+
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          const data = JSON.parse(xhr.responseText);
+
+          // Broadcast file message via WebSocket
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+              type: 'file_message',
+              file_url: data.file_url,
+              file_name: data.file_name,
+              is_image: data.is_image,
+              caption: caption,
+            }));
+          }
+
+          // Clear
+          if (captionInput) captionInput.value = '';
+          cancelUpload();
+        } else {
+          console.error('Upload failed:', xhr.statusText);
+          alert('Upload failed. Please try again.');
+          if (uploadBtn) uploadBtn.disabled = false;
+        }
+      };
+
+      xhr.onerror = function () {
+        console.error('Upload error');
+        alert('Upload failed. Please try again.');
+        if (uploadBtn) uploadBtn.disabled = false;
+      };
+
+      xhr.send(formData);
+    }
+
+    // Lightbox functions
+    function openLightbox(url) {
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightbox').classList.add('active');
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('active');
+      document.getElementById('lightboxImg').src = '';
+    }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+
+    // Typing indicator logic
+    let typingTimeout = null;
+    const msgInput = document.getElementById("msg");
+
+    if (msgInput) {
+      msgInput.addEventListener("input", function () {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            'typing': true
+          }));
+        }
+
+        if (typingTimeout) clearTimeout(typingTimeout);
+
+        typingTimeout = setTimeout(function () {
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+              'typing': false
+            }));
+          }
+        }, 1000); // Send 'not typing' after 1 second of inactivity
+      });
+    }
+
+    let typingIndicatorElement = null;
+
+    function updateTypingIndicator(isTyping, senderName) {
+      const container = document.getElementById("messagesContainer");
+
+      // Remove existing indicator if any
+      if (typingIndicatorElement) {
+        typingIndicatorElement.remove();
+        typingIndicatorElement = null;
+      }
+
+      if (isTyping) {
+        typingIndicatorElement = document.createElement('div');
+        typingIndicatorElement.className = 'flex items-center gap-3 typing-indicator mb-4';
+        typingIndicatorElement.innerHTML = `
+                <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white shadow-lg">
+                  ${senderName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                    <div class="text-[10px] text-gray-400 ml-1 mb-1">${senderName} is typing...</div>
+                    <div class="flex items-center space-x-2 bg-gray-800/70 backdrop-blur-sm border border-gray-700 rounded-2xl px-4 py-2">
+                      <div class="flex space-x-1">
+                        <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.16s]"></div>
+                        <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.08s]"></div>
+                        <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                      </div>
+                    </div>
+                </div>
+            `;
+        container.appendChild(typingIndicatorElement);
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    // New Chat button focus search logic
+    const newChatBtn = document.getElementById('newChatBtn');
+    if (newChatBtn) {
+      newChatBtn.addEventListener('click', () => {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    }
+    // Initial update of online counter (script is at end of body, DOM is already ready)
+    (function () {
+      const onlineCount = document.querySelectorAll('.status-dot.bg-emerald-500').length;
+      const counterSpan = document.getElementById('online-count');
+      if (counterSpan) {
+        counterSpan.textContent = onlineCount;
+      }
+    })();
+  </script>
+</body>
+
+</html>
