@@ -6,6 +6,10 @@ import chat.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chat_backend.settings')
 
+django.setup()
+
+import chat.routing  # <-- import AFTER setup
+
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": AuthMiddlewareStack(
