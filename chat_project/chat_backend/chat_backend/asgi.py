@@ -12,7 +12,7 @@ os.environ.setdefault(
 
 django.setup()  # ✅ MUST come BEFORE importing routing
 
-from chat.routing import websocket_urlpatterns  # ✅ Import AFTER setup
+import chat.routing  # ✅ Import AFTER setup
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
