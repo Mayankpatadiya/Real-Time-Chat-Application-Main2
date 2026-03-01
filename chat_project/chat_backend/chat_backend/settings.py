@@ -28,7 +28,14 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+CSRF_TRUSTED_ORIGINS = [
+    "https://real-time-chat-application-main2-7.onrender.com",
+]
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 ASGI_APPLICATION = 'chat_backend.asgi.application'
 # Application definition
 
