@@ -263,6 +263,12 @@ def user_list(request):
     })
 @login_required(login_url='login')
 def chat_view(request, user_id):
+     # Prevent chatting with yourself
+    if request.user.id == user_id:
+        return HttpResponseForbidden("You cannot chat with yourself.")
+    
+    # Safely get user
+    other_user = get_object_or_404(User, id=user_id)
     other_user = User.objects.get(id=user_id)
 
     user1, user2 = sorted([request.user, other_user], key=lambda u: u.id)
