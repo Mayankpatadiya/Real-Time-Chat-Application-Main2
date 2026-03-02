@@ -269,7 +269,6 @@ def chat_view(request, user_id):
     
     # Safely get user
     other_user = get_object_or_404(User, id=user_id)
-    other_user = User.objects.get(id=user_id)
 
     user1, user2 = sorted([request.user, other_user], key=lambda u: u.id)
 
