@@ -357,8 +357,8 @@
         {% for profile in users %}
         <a href="{% url 'chat' profile.user.id %}" data-user-id="{{ profile.user.id }}"
           class="contact-item p-4 rounded-2xl hover:bg-gray-800/50 cursor-pointer transition-all duration-200 flex items-center space-x-4 group"
-          {% if profile.user.id not in chatted_user_ids and active_user.id !=profile.user.id %} data-search-only="true"
-          style="display: none;" {% endif %}>
+          {% if profile.user.id not in chatted_user_ids and not active_user.id==profile.user.id %}
+          data-search-only="true" style="display: none;" {% endif %}>
 
           <div class="relative">
             {% if profile.profile_photo %}
