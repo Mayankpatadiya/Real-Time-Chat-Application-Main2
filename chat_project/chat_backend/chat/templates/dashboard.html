@@ -218,6 +218,25 @@
       border-radius: 2px;
       transition: width .3s;
     }
+
+    /* Message Delete Button */
+    .msg-container:hover .delete-msg-form {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .delete-msg-form {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      left: -40px;
+    }
   </style>
 </head>
 
@@ -470,13 +489,27 @@
 
         {% if messages %}
         {% for msg in messages %}
-        <div class="flex {% if msg.sender == request.user %}justify-end{% else %}justify-start{% endif %} w-full">
-          <div class="max-w-[85%] md:max-w-sm px-4 py-2 rounded-2xl break-words
+        <div
+          class="flex {% if msg.sender == request.user %}justify-end{% else %}justify-start{% endif %} w-full msg-container mb-2">
+          <div class="max-w-[85%] md:max-w-sm px-4 py-2 rounded-2xl break-words relative
            {% if msg.sender == request.user %}
              bg-emerald-500 text-white
            {% else %}
              bg-gray-800 text-white
            {% endif %}">
+
+            {% if msg.sender == request.user %}
+            <form method="POST" action="{% url 'delete_message' msg.id %}" class="delete-msg-form"
+              onsubmit="return confirm('Delete this message?');">
+              {% csrf_token %}
+              <button type="submit"
+                class="text-red-400 hover:text-red-500 bg-gray-800/80 rounded-full w-8 h-8 flex items-center justify-center shadow-sm"
+                title="Delete message">
+                <i class="fas fa-trash text-xs"></i>
+              </button>
+            </form>
+            {% endif %}
+
             {% if active_group and msg.sender != request.user %}
             <div class="text-[10px] text-gray-400 mb-1 ml-1">{{ msg.sender.username }}</div>
             {% endif %}

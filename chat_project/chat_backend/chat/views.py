@@ -375,3 +375,26 @@ def leave_group(request, group_id):
     
     return redirect('dashboard')
 
+@login_required(login_url='login')
+@require_POST
+def delete_message(request, message_id):
+    msg = get_object_or_404(Message, id=message_id)
+    
+    if msg.sender != request.user:
+        messages.error(request, "You can only delete your own messages.")
+        return redirect('dashboard')
+        
+    chat_id = msg.chat.id if msg.chat else None
+    group_id = msg.group.id if msg.group else None
+    
+    msg.delete()
+    
+    if chat_id:
+        chat = Chat.objects.get(id=chat_id)
+        other_user = chat.user1 if chat.user1 != request.user else chat.user2
+        return redirect('chat', user_id=other_user.id)
+    elif group_id:
+        return redirect('group_chat', group_id=group_id)
+        
+    return redirect('dashboard')
+
