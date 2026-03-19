@@ -17,9 +17,9 @@ class MessageAdmin(admin.ModelAdmin):
 
 @admin.register(ChatGroup)
 class ChatGroupAdmin(admin.ModelAdmin):
-    list_display= ('id','name','created_by','created_at')
-    list_filter = ('name','members','created_by','created_at')
-    search_fields = ('name', 'members__user__username', 'created_by__user__username')
+    list_display = ('id','name','created_by','created_at')
+    list_filter = ('name','created_by','created_at')
+    search_fields = ('name', 'created_by__user__username')
 
 @admin.register(Chat)
 class ChatAdmin(admin.ModelAdmin):
