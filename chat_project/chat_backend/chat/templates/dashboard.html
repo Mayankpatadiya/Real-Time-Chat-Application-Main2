@@ -357,7 +357,7 @@
         {% for profile in users %}
         <a href="{% url 'chat' profile.user.id %}" data-user-id="{{ profile.user.id }}"
           class="contact-item p-4 rounded-2xl hover:bg-gray-800/50 cursor-pointer transition-all duration-200 flex items-center space-x-4 group"
-          {% if profile.user.id not in chatted_user_ids %} data-search-only="true" style="display: none;" {% endif %}>
+          data-search-only="true" style="display: none;">
 
           <div class="relative">
             {% if profile.profile_photo %}
@@ -792,6 +792,16 @@
     const searchInput = document.getElementById('searchInput');
     const contactItems = document.querySelectorAll('.contact-item');
 
+    // Bypass hiding for the active chat user
+    const activeUserIdStr = "{{ active_user.id|default:'' }}";
+    if (activeUserIdStr) {
+      contactItems.forEach(item => {
+        if (item.dataset.userId === activeUserIdStr) {
+          item.dataset.searchOnly = 'false';
+        }
+      });
+    }
+
     function filterContacts() {
       const query = (searchInput?.value || '').toLowerCase();
       const activeTabBtn = document.querySelector('[data-tab].text-emerald-400');
@@ -807,7 +817,7 @@
         if (query) {
           show = name.includes(query);
         } else {
-          if (item.dataset.searchOnly) {
+          if (item.dataset.searchOnly === 'true') {
             show = false;
           } else if (tab === 'online') {
             if (!statusDot || !isOnline) show = false;
@@ -822,6 +832,9 @@
         groupsSection.style.display = (tab === 'online' && !query) ? 'none' : 'block';
       }
     }
+
+    // Call once on load to establish correct visibility
+    filterContacts();
 
     searchInput.addEventListener('input', filterContacts);
 
