@@ -13,13 +13,13 @@ class UserProfileAdmin(admin.ModelAdmin):
 class MessageAdmin(admin.ModelAdmin):
     list_display= ('id','chat','group','sender','content')
     list_filter = ('chat', 'group','sender')
-    search_fields = ('chat','group','sender')
+    search_fields = ('chat__user1__username', 'chat__user2__username', 'group__name', 'sender__username', 'content')
 
 @admin.register(ChatGroup)
 class ChatGroupAdmin(admin.ModelAdmin):
     list_display= ('id','name','created_by','created_at')
     list_filter = ('name','members','created_by','created_at')
-    search_fields = ('name','members')
+    search_fields = ('name', 'members__user__username', 'created_by__user__username')
 
 @admin.register(Chat)
 class ChatAdmin(admin.ModelAdmin):
