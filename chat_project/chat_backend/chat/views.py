@@ -351,3 +351,27 @@ def group_chat_view(request, group_id):
         "online_users_count": online_users_count,
         "chatted_user_ids": get_chatted_user_ids(request.user)
     })
+
+@login_required(login_url='login')
+@require_POST
+def leave_group(request, group_id):
+    group = get_object_or_404(ChatGroup, id=group_id)
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        return redirect('dashboard')
+    
+    if user_profile in group.members.all() or user_profile == group.created_by:
+        group.members.remove(user_profile)
+        # Check if the group is now empty. Members might not include creator if creator wasn't added locally, but in our create_group we do add them to members.
+        if group.members.count() == 0:
+            group.delete()
+        else:
+            # Optionally reassign created_by if creator left
+            if group.created_by == user_profile:
+                group.created_by = group.members.first()
+                group.save()
+        messages.success(request, f"You have left the group {group.name}.")
+    
+    return redirect('dashboard')
+
