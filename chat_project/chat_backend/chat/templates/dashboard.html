@@ -356,7 +356,9 @@
 
         {% for profile in users %}
         <a href="{% url 'chat' profile.user.id %}" data-user-id="{{ profile.user.id }}"
-          class="contact-item p-4 rounded-2xl hover:bg-gray-800/50 cursor-pointer transition-all duration-200 flex items-center space-x-4 group">
+          class="contact-item p-4 rounded-2xl hover:bg-gray-800/50 cursor-pointer transition-all duration-200 flex items-center space-x-4 group"
+          {% if profile.user.id not in chatted_user_ids and active_user.id !=profile.user.id %} data-search-only="true"
+          style="display: none;" {% endif %}>
 
           <div class="relative">
             {% if profile.profile_photo %}
@@ -791,13 +793,38 @@
     const searchInput = document.getElementById('searchInput');
     const contactItems = document.querySelectorAll('.contact-item');
 
-    searchInput.addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase();
+    function filterContacts() {
+      const query = (searchInput?.value || '').toLowerCase();
+      const activeTabBtn = document.querySelector('[data-tab].text-emerald-400');
+      const tab = activeTabBtn ? activeTabBtn.dataset.tab : 'all';
+
       contactItems.forEach(item => {
         const name = item.querySelector('h4').textContent.toLowerCase();
-        item.style.display = name.includes(query) ? 'flex' : 'none';
+        const statusDot = item.querySelector('.status-dot');
+        const isOnline = statusDot && statusDot.classList.contains('bg-emerald-500');
+
+        let show = true;
+
+        if (query) {
+          show = name.includes(query);
+        } else {
+          if (item.dataset.searchOnly) {
+            show = false;
+          } else if (tab === 'online') {
+            if (!statusDot || !isOnline) show = false;
+          }
+        }
+
+        item.style.display = show ? 'flex' : 'none';
       });
-    });
+
+      const groupsSection = document.getElementById('groupsSection');
+      if (groupsSection) {
+        groupsSection.style.display = (tab === 'online' && !query) ? 'none' : 'block';
+      }
+    }
+
+    searchInput.addEventListener('input', filterContacts);
 
     // Tab switching logic
     const tabButtons = document.querySelectorAll('[data-tab]');
@@ -813,28 +840,7 @@
         btn.classList.add('bg-emerald-500/10', 'text-emerald-400', 'border-emerald-500/30');
         btn.classList.remove('text-gray-400');
 
-        // Filter contacts
-        contactItems.forEach(item => {
-          const statusDot = item.querySelector('.status-dot');
-          if (tab === 'online') {
-            // Groups don't have a status dot — hide them in online tab
-            if (!statusDot) {
-              item.style.display = 'none';
-            } else {
-              const isOnline = statusDot.classList.contains('bg-emerald-500');
-              item.style.display = isOnline ? 'flex' : 'none';
-            }
-          } else {
-            item.style.display = 'flex';
-          }
-        });
-
-        // Show/hide the entire Groups section header + separator
-        const groupsSection = document.getElementById('groupsSection');
-        if (groupsSection) {
-          groupsSection.style.display = tab === 'online' ? 'none' : 'block';
-        }
-
+        filterContacts();
       });
     });
 
@@ -1075,6 +1081,10 @@
         if (searchInput) {
           searchInput.focus();
           searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Reveal all contacts when new chat is clicked so user can pick
+          contactItems.forEach(item => {
+            item.style.display = 'flex';
+          });
         }
       });
     }

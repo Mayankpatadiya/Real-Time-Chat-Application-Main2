@@ -19,6 +19,10 @@ from django.core.exceptions import ValidationError
 
 # Create your views here.
 
+def get_chatted_user_ids(user):
+    return list(Chat.objects.filter(user1=user).values_list('user2_id', flat=True)) + \
+           list(Chat.objects.filter(user2=user).values_list('user1_id', flat=True))
+
 def chat_room(request):
     return render(request,'chat_room.html')
 
@@ -108,7 +112,8 @@ def dashboard(request):
     return render(request, 'dashboard.html', {
         'users': users,
         'groups': groups,
-        'online_users_count': online_users_count
+        'online_users_count': online_users_count,
+        'chatted_user_ids': get_chatted_user_ids(request.user)
     })
 
 
@@ -303,7 +308,8 @@ def chat_view(request, user_id):
         "active_user": other_user,
         "chat": chat,
         "messages": messages_qs,
-        "online_users_count": online_users_count
+        "online_users_count": online_users_count,
+        "chatted_user_ids": get_chatted_user_ids(request.user)
     })
 
 @login_required(login_url='login')
@@ -342,5 +348,6 @@ def group_chat_view(request, group_id):
         "groups": groups,
         "active_group": group,
         "messages": messages_qs,
-        "online_users_count": online_users_count
+        "online_users_count": online_users_count,
+        "chatted_user_ids": get_chatted_user_ids(request.user)
     })
