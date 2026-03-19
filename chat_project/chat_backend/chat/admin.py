@@ -20,7 +20,7 @@ class ChatGroupAdmin(admin.ModelAdmin):
     list_display= ('id','name','created_by','created_at')
     list_filter = ('created_by','created_at')
     filter_horizontal = ('members',)
-    search_fields = ('name', 'members__user__username', 'created_by__user__username')
+    search_fields = ('name', 'created_by__user__username')
 
 @admin.register(Chat)
 class ChatAdmin(admin.ModelAdmin):
