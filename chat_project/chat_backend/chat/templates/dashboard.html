@@ -1093,10 +1093,6 @@
         if (searchInput) {
           searchInput.focus();
           searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Reveal all contacts when new chat is clicked so user can pick
-          contactItems.forEach(item => {
-            item.style.display = 'flex';
-          });
         }
       });
     }
