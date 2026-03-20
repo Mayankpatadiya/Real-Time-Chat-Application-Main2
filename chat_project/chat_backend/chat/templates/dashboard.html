@@ -332,13 +332,12 @@
       <!-- Tabs -->
       <div class="flex px-4 py-3 border-b border-gray-800/50 bg-gray-900/50">
         <button
-          class="flex-1 py-2 px-3 text-sm font-medium rounded-xl text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 transition-all"
+          class="tab-btn flex-1 py-2 px-3 text-sm font-medium rounded-xl text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 transition-all"
           data-tab="online">
-          <i class="fas fa-circle mr-1 text-xs"></i>Online (<span id="online-count">{{ online_users_count|default:0
-            }}</span>)
+          <i class="fas fa-circle mr-1 text-xs text-emerald-400"></i>Online (<span id="online-count">{{ online_users_count|default:0 }}</span>)
         </button>
         <button
-          class="flex-1 py-2 px-3 text-sm font-medium rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+          class="tab-btn flex-1 py-2 px-3 text-sm font-medium rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 active-tab"
           data-tab="all">
           All Chats
         </button>
@@ -844,26 +843,30 @@
       });
     }
 
+    // Track the active tab
+    let activeTab = 'all';
+
     function filterContacts() {
       const query = (searchInput?.value || '').toLowerCase();
-      const activeTabBtn = document.querySelector('[data-tab].text-emerald-400');
-      const tab = activeTabBtn ? activeTabBtn.dataset.tab : 'all';
 
       contactItems.forEach(item => {
-        const name = item.querySelector('h4').textContent.toLowerCase();
+        const name = item.querySelector('h4') ? item.querySelector('h4').textContent.toLowerCase() : '';
         const statusDot = item.querySelector('.status-dot');
         const isOnline = statusDot && statusDot.classList.contains('bg-emerald-500');
+        // Groups don't have a status dot
+        const isGroupItem = !statusDot;
 
-        let show = true;
+        let show = false;
 
         if (query) {
+          // Search mode: show any item matching the query name
           show = name.includes(query);
+        } else if (activeTab === 'online') {
+          // Online tab: show only online users (not groups)
+          show = !isGroupItem && isOnline;
         } else {
-          if (item.dataset.searchOnly === 'true') {
-            show = false;
-          } else if (tab === 'online') {
-            if (!statusDot || !isOnline) show = false;
-          }
+          // All Chats tab: show only non-search-only items (previously chatted users and groups)
+          show = item.dataset.searchOnly !== 'true';
         }
 
         item.style.display = show ? 'flex' : 'none';
@@ -871,7 +874,8 @@
 
       const groupsSection = document.getElementById('groupsSection');
       if (groupsSection) {
-        groupsSection.style.display = (tab === 'online' && !query) ? 'none' : 'block';
+        // Hide groups section when on Online tab (unless searching)
+        groupsSection.style.display = (activeTab === 'online' && !query) ? 'none' : 'block';
       }
     }
 
@@ -881,17 +885,17 @@
     searchInput.addEventListener('input', filterContacts);
 
     // Tab switching logic
-    const tabButtons = document.querySelectorAll('[data-tab]');
+    const tabButtons = document.querySelectorAll('.tab-btn');
     tabButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
+        activeTab = btn.dataset.tab;
 
         // Update button styles
         tabButtons.forEach(b => {
-          b.classList.remove('bg-emerald-500/10', 'text-emerald-400', 'border-emerald-500/30');
+          b.classList.remove('bg-emerald-500/10', 'text-emerald-400', 'border', 'border-emerald-500/30', 'active-tab');
           b.classList.add('text-gray-400');
         });
-        btn.classList.add('bg-emerald-500/10', 'text-emerald-400', 'border-emerald-500/30');
+        btn.classList.add('bg-emerald-500/10', 'text-emerald-400', 'border', 'border-emerald-500/30', 'active-tab');
         btn.classList.remove('text-gray-400');
 
         filterContacts();
